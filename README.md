@@ -1,85 +1,91 @@
 # Análise de Reclamações contra Operadoras de Telecom
 
-Aplicação web em Python para analisar as reclamações registradas no
-[consumidor.gov.br](https://www.consumidor.gov.br/pages/dadosabertos/externo/)
-contra operadoras de telefonia, internet e TV por assinatura, e prever se uma
+Aplicação web em Python que analisa as reclamações registradas no
+[consumidor.gov.br](https://www.consumidor.gov.br/pages/dadosabertos/externo/) contra operadoras
+de telefonia, internet e TV por assinatura, com foco nos motivos de cancelamento, e prevê se uma
 reclamação será resolvida.
 
-> **Status:** protótipo do front-end. As telas usam dados fictícios para mostrar
-> como o sistema vai funcionar depois que a base real for tratada.
+## Como funciona
 
-## Funcionalidades
+| Passo | Tela | O que acontece |
+|---|---|---|
+| 1 | Dados | Envio da base (.csv, .json ou .xml). O back-end confere as colunas, filtra as operadoras de telecom e limpa os dados |
+| 2 | Análise | Gráficos dos problemas mais reclamados, operadoras, estados (mapa) e faixa etária |
+| 3 | Modelo e previsão | Escolha do classificador (Árvore de Decisão ou Regressão Logística), ajuste do parâmetro, treino, histórico e previsão |
 
-| Tela | O que faz |
-|---|---|
-| **Início** | Apresenta o sistema e explica como usar |
-| **Dados** | Upload da base (.csv, .json ou .xml), resumo e prévia dos dados |
-| **Gráficos** | Problemas mais reclamados (com destaque para cancelamento), operadoras, perfil do consumidor e mapa por estado |
+**Retreino:** ao enviar a base de um novo mês no passo 1, ela substitui a anterior. Basta treinar de novo no passo 3; cada treino fica registrado no histórico.
 
 ## Tecnologias
 
 | Biblioteca | Uso |
 |---|---|
-| Streamlit | Interface web (front-end) |
-| pandas | Manipulação e limpeza dos dados |
-| NumPy | Geração dos dados de exemplo |
-| Matplotlib e Seaborn | Gráficos |
+| Flask | Back-end (rotas que recebem os pedidos do front-end) |
+| Streamlit | Front-end (telas) |
+| pandas | Leitura, limpeza e resumo dos dados |
+| matplotlib e seaborn | Gráficos |
+| scikit-learn | Treino, avaliação e previsão |
+
+## Estrutura
+
+```
+backend/
+  app.py        rotas do Flask
+  dados.py      leitura, limpeza e resumo da base (pandas)
+  modelo.py     treino, avaliação e previsão (scikit-learn)
+frontend/
+  app.py        menu com os 3 passos
+  api.py        funções que chamam o back-end
+  paginas/      dados.py, analise.py, modelo.py
+dados/exemplo/  amostra da base oficial para testes
+```
+
+## Rotas do back-end
+
+| Método | Rota | Função |
+|---|---|---|
+| GET | `/status` | Base atual e base usada no último treino |
+| POST | `/dados` | Recebe o arquivo, valida e limpa a base |
+| GET | `/dados/resumo` | Números usados nos gráficos |
+| POST | `/modelo/treinar` | Treina (ou retreina) o classificador |
+| GET | `/modelo/historico` | Lista os treinos feitos |
+| POST | `/modelo/prever` | Prevê se uma reclamação será resolvida |
 
 ## Como executar
 
-**1. Criar e ativar o ambiente virtual**
+Criar e ativar o ambiente virtual (Windows):
 
 ```bash
 python -m venv .venv
-```
-
-Windows:
-
-```bash
 .venv\Scripts\activate
 ```
 
-Linux ou Mac:
-
-```bash
-source .venv/bin/activate
-```
-
-**2. Instalar as dependências**
+Instalar as dependências:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**3. Iniciar a aplicação**
+Em um terminal, iniciar o back-end (porta 5000):
 
 ```bash
-streamlit run frontend/Inicio.py
+python backend/app.py
 ```
 
-A aplicação abre no navegador em `http://localhost:8501`.
+Em outro terminal, iniciar o front-end (abre em `http://localhost:8501`):
 
-## Estrutura do projeto
-
-```
-├── frontend/
-│   ├── Inicio.py           tela inicial
-│   ├── dados_exemplo.py    dados fictícios usados no protótipo
-│   └── pages/
-│       ├── 1_Dados.py      upload e resumo da base
-│       ├── 2_Graficos.py   gráficos e mapa
-├── requirements.txt
-└── README.md
+```bash
+streamlit run frontend/app.py
 ```
 
-## Fonte dos dados
+## Dados
 
-Dados abertos do **consumidor.gov.br** (Secretaria Nacional do Consumidor), arquivos
-mensais `finalizadas_AAAA-MM`, com uma linha por reclamação.
+As bases mensais ficam em consumidor.gov.br, Dados Abertos, nas linhas "Dados - Mês/Ano"
+(arquivos `finalizadas_AAAA-MM`). A pasta `dados/exemplo` tem uma amostra de 7.500 linhas da base
+de setembro de 2026, usada no botão "Usar a base de exemplo".
 
 ## Equipe
 
 | Integrante | Responsabilidade |
 |---|---|
-| Igor | Estrutura do projeto, telas de Dados e Gráficos |
-| Rafael | Telas de Modelo e Predição |
+| Igor | Dados e análise: `backend/dados.py`, `frontend/paginas/dados.py`, `frontend/paginas/analise.py` |
+| Rafael | Modelo e previsão: `backend/modelo.py`, `frontend/paginas/modelo.py` |
