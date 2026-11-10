@@ -8,7 +8,8 @@ st.set_page_config(page_title="Reclamações Telecom", page_icon="📞", layout=
 paginas = st.navigation([
     st.Page("paginas/dados.py", title="1. Dados", default=True),
     st.Page("paginas/analise.py", title="2. Análise"),
-    st.Page("paginas/modelo.py", title="3. Modelo e previsão"),
+    st.Page("paginas/modelo.py", title="3. Modelo"),
+    st.Page("paginas/previsoes.py", title="4. Previsões"),
 ])
 
 

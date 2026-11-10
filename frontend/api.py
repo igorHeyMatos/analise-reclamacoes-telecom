@@ -38,3 +38,11 @@ def historico():
 
 def prever(reclamacao):
     return chamar("POST", "/modelo/prever", json=reclamacao)
+
+
+def previsoes():
+    return chamar("GET", "/previsoes")
+
+
+def cenarios(problema, uf, procurou):
+    return chamar("POST", "/modelo/cenarios", json={"Problema": problema, "UF": uf, "Procurou Empresa": procurou})

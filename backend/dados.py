@@ -65,6 +65,13 @@ def limpar(df):
     return df[COLUNAS_MODELO + [ALVO]].reset_index(drop=True), etapas
 
 
+def separar_pendentes(df):
+    """Reclamações de telecom que o consumidor ainda não avaliou: são elas que o modelo vai prever."""
+    df = df[df["Segmento de Mercado"].str.contains("Telecomunica", na=False)]
+    df = df[df[ALVO] == "Não Avaliada"]
+    return df.dropna(subset=COLUNAS_MODELO)[COLUNAS_MODELO].reset_index(drop=True)
+
+
 def eh_cancelamento(problema):
     return "cancel" in problema.lower()
 

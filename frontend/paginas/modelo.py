@@ -7,8 +7,6 @@ import api
 
 CLASSIFICADORES = {"Árvore de Decisão": "arvore", "Regressão Logística": "logistica"}
 NOMES = {valor: nome for nome, valor in CLASSIFICADORES.items()}
-ROTULOS_CAMPOS = {"Nome Fantasia": "Operadora", "Como Comprou Contratou": "Como contratou",
-                  "Procurou Empresa": "Procurou a empresa antes?", "UF": "Estado (UF)"}
 
 
 def mostrar_treino():
@@ -26,7 +24,7 @@ def mostrar_treino():
         teste = st.slider("Parte da base separada para teste (%)", 10, 40, 20, step=5)
 
         if st.button("Treinar com a base atual", type="primary"):
-            with st.spinner("Treinando..."):
+            with st.spinner("Treinando e prevendo as reclamações em aberto..."):
                 codigo, resposta = api.treinar(CLASSIFICADORES[nome], parametro, teste / 100)
             if codigo != 200:
                 st.error(resposta["erro"])
@@ -89,36 +87,12 @@ def mostrar_historico():
     return historico
 
 
-def mostrar_previsao(opcoes):
-    with st.form("previsao"):
-        colunas = st.columns(2)
-        reclamacao = {}
-        for i, campo in enumerate(opcoes):
-            reclamacao[campo] = colunas[i % 2].selectbox(ROTULOS_CAMPOS.get(campo, campo), opcoes[campo])
-        enviado = st.form_submit_button("Prever", type="primary")
-
-    if enviado:
-        codigo, resposta = api.prever(reclamacao)
-        if codigo != 200:
-            st.error(resposta["erro"])
-        else:
-            st.metric("Chance de ser resolvida", f"{resposta['chance_resolvida']:.0%}")
-            if resposta["previsao"] == "Resolvida":
-                st.success("Previsão: a reclamação deve ser **resolvida**.")
-            else:
-                st.error("Previsão: a reclamação provavelmente **não será resolvida**.")
-
-
 status_resumo, resumo = api.resumo()
 if status_resumo != 200:
     st.info("Envie uma base no passo 1 para treinar o modelo.")
 else:
-    st.title("Modelo e previsão")
-    st.caption("Escolha o classificador e treine. Quando enviar uma base nova no passo 1, treine de novo: isso é o retreino.")
+    st.title("Modelo")
+    st.caption("Escolha o classificador e treine. Quando enviar uma base nova no passo 1, treine de novo: isso é o retreino. "
+               "As previsões ficam na tela 4.")
     mostrar_treino()
-    historico = mostrar_historico()
-    st.subheader("Prever uma reclamação")
-    if historico:
-        mostrar_previsao(resumo["opcoes"])
-    else:
-        st.caption("Treine um modelo para liberar a previsão.")
+    mostrar_historico()

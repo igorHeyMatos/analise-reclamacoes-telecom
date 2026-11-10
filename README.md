@@ -11,9 +11,10 @@ reclamação será resolvida.
 |---|---|---|
 | 1 | Dados | Envio da base (.csv, .json ou .xml). O back-end confere as colunas, filtra as operadoras de telecom e limpa os dados |
 | 2 | Análise | Gráficos dos problemas mais reclamados, operadoras, estados (mapa) e faixa etária |
-| 3 | Modelo e previsão | Escolha do classificador (Árvore de Decisão ou Regressão Logística), ajuste do parâmetro, treino, histórico e previsão |
+| 3 | Modelo | Escolha do classificador (Árvore de Decisão ou Regressão Logística), ajuste do parâmetro, treino, métricas e histórico |
+| 4 | Previsões | O modelo prevê de uma vez todas as reclamações ainda sem avaliação: confiança do modelo, resultado geral, o que mais pesa nas previsões, comparação de cenários entre operadoras, lista com o principal motivo (com download em .csv) e previsão individual |
 
-**Retreino:** ao enviar a base de um novo mês no passo 1, ela substitui a anterior. Basta treinar de novo no passo 3; cada treino fica registrado no histórico.
+**Retreino:** ao enviar a base de um novo mês no passo 1, ela substitui a anterior. Basta treinar de novo no passo 3; cada treino fica registrado no histórico e atualiza as previsões da tela 4.
 
 ## Tecnologias
 
@@ -30,12 +31,12 @@ reclamação será resolvida.
 ```
 backend/
   app.py        rotas do Flask
-  dados.py      leitura, limpeza e resumo da base (pandas)
-  modelo.py     treino, avaliação e previsão (scikit-learn)
+  dados.py      leitura, limpeza, resumo e reclamações pendentes (pandas)
+  modelo.py     treino, avaliação, previsão em lote e explicação (scikit-learn)
 frontend/
-  app.py        menu com os 3 passos
+  app.py        menu com os 4 passos
   api.py        funções que chamam o back-end
-  paginas/      dados.py, analise.py, modelo.py
+  paginas/      dados.py, analise.py, modelo.py, previsoes.py
 dados/exemplo/  amostra da base oficial para testes
 ```
 
@@ -49,6 +50,8 @@ dados/exemplo/  amostra da base oficial para testes
 | POST | `/modelo/treinar` | Treina (ou retreina) o classificador |
 | GET | `/modelo/historico` | Lista os treinos feitos |
 | POST | `/modelo/prever` | Prevê se uma reclamação será resolvida |
+| GET | `/previsoes` | Previsões de todas as reclamações sem avaliação, com o principal motivo de cada uma |
+| POST | `/modelo/cenarios` | Prevê a mesma situação para cada operadora, para comparar |
 
 ## Como executar
 
@@ -87,5 +90,5 @@ de setembro de 2026, usada no botão "Usar a base de exemplo".
 
 | Integrante | Responsabilidade |
 |---|---|
-| Igor | Dados e análise: `backend/dados.py`, `frontend/paginas/dados.py`, `frontend/paginas/analise.py` |
-| Rafael | Modelo e previsão: `backend/modelo.py`, `frontend/paginas/modelo.py` |
+| Igor | Dados, análise e previsões: `backend/dados.py`, `frontend/paginas/dados.py`, `frontend/paginas/analise.py`, `frontend/paginas/previsoes.py`, previsão em lote e cenários em `backend/modelo.py` |
+| Rafael | Modelo: treino e avaliação em `backend/modelo.py`, `frontend/paginas/modelo.py` |

@@ -1,4 +1,6 @@
 """Back-end em Flask: recebe os pedidos do front-end e responde em JSON."""
+from datetime import datetime
+
 from flask import Flask, jsonify, request
 
 import dados
@@ -15,6 +17,9 @@ estado = {
     "modelo": None,        # classificador treinado
     "base_do_modelo": None,
     "historico": [],       # todos os treinos feitos
+    "pendentes": None,     # reclamações ainda sem avaliação, que o modelo vai prever
+    "previsoes": None,     # previsão de todas as pendentes, feita a cada treino
+    "caracteristicas": None,  # chance média prevista por característica (o "porquê")
 }
 
 
@@ -54,9 +59,11 @@ def enviar_dados():
     estado["base"] = base
     estado["nome_base"] = arquivo.filename
     estado["resumo"] = dados.resumir(base)
+    estado["pendentes"] = dados.separar_pendentes(df)
     return jsonify({
         "arquivo": arquivo.filename,
         "etapas": [{"etapa": nome, "linhas": linhas} for nome, linhas in etapas],
+        "pendentes": len(estado["pendentes"]),
         "previa": base.head(8).to_dict(orient="records"),
     }), 201
 
@@ -87,7 +94,19 @@ def treinar():
 
     estado["modelo"] = modelo_treinado
     estado["base_do_modelo"] = estado["nome_base"]
-    registro = {"base": estado["nome_base"], "classificador": tipo, "parametro": parametro, **metricas}
+
+    # Com o modelo novo, prevê de uma vez todas as reclamações ainda sem avaliação
+    pendentes = estado["pendentes"]
+    if pendentes is not None and len(pendentes) > 0:
+        previsoes = modelo.prever_lote(modelo_treinado, pendentes)
+        estado["caracteristicas"] = modelo.explicar(previsoes)
+        previsoes["motivo"] = modelo.principal_motivo(previsoes, estado["caracteristicas"])
+        estado["previsoes"] = previsoes
+    else:
+        estado["previsoes"] = None
+
+    registro = {"base": estado["nome_base"], "classificador": tipo, "parametro": parametro,
+                "treinado_em": datetime.now().strftime("%d/%m/%Y %H:%M:%S"), **metricas}
     estado["historico"].append(registro)
     return jsonify(registro)
 
@@ -108,6 +127,35 @@ def prever():
         return erro("Campos ausentes: " + ", ".join(faltando))
 
     return jsonify(modelo.prever(estado["modelo"], reclamacao))
+
+
+@app.get("/previsoes")
+def previsoes():
+    if estado["modelo"] is None:
+        return erro("Treine um modelo antes de ver as previsões.", 404)
+    if estado["previsoes"] is None:
+        return erro("A base usada no treino não tem reclamações sem avaliação para prever.", 404)
+
+    return jsonify({
+        "base": estado["base_do_modelo"],
+        "previsoes": estado["previsoes"].to_dict(orient="records"),
+        "caracteristicas": estado["caracteristicas"].to_dict(orient="records"),
+    })
+
+
+@app.post("/modelo/cenarios")
+def cenarios():
+    if estado["modelo"] is None:
+        return erro("Treine um modelo antes de comparar cenários.", 404)
+
+    pedido = request.get_json() or {}
+    faltando = [campo for campo in ["Problema", "UF", "Procurou Empresa"] if campo not in pedido]
+    if faltando:
+        return erro("Campos ausentes: " + ", ".join(faltando))
+
+    resultado = modelo.cenarios(estado["modelo"], estado["base"], pedido["Problema"], pedido["UF"],
+                                pedido["Procurou Empresa"])
+    return jsonify(resultado.to_dict(orient="records"))
 
 
 if __name__ == "__main__":
